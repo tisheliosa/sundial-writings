@@ -45,14 +45,19 @@ export function MainPage() {
     };
 
     // --- Pointer drag with momentum ---
-    // While dragging, we sample the pointer's Y and time at each move event
-    // and keep the most recent samples in a small ring. On release, we
-    // estimate velocity (notches per second) from the samples spanning the
-    // last ~80 ms and start a momentum animation that decays exponentially.
+    // We allow drags to start anywhere on the page — including on memo-row
+    // buttons — and only commit to "this is a drag, not a tap" once the
+    // pointer has moved more than DRAG_THRESHOLD_PX vertically. Below the
+    // threshold the touch is treated as a tap and the button's click fires
+    // normally; above it, we capture the pointer, apply the motion, and
+    // swallow the upcoming click so a flick doesn't accidentally open a memo.
     let activePointerId: number | null = null;
-    let lastY = 0;
+    let dragStarted = false;     // crossed the threshold and is now a drag
+    let startY = 0;              // y at pointerdown
+    let lastY = 0;               // y at the previous applied move
     type Sample = { t: number; y: number };
     const samples: Sample[] = [];
+    const DRAG_THRESHOLD_PX = 6;          // movement before we commit to "this is a drag"
     const SAMPLE_WINDOW_MS = 80;          // velocity is averaged over the last N ms of movement
     const MOMENTUM_DECAY_PER_SEC = 4.5;    // higher = momentum dies off faster
     const MOMENTUM_MIN_VELOCITY = 0.01;    // notches/sec — stop animating below this
@@ -100,24 +105,43 @@ export function MainPage() {
     };
 
     const onPointerDown = (e: PointerEvent) => {
-      // Ignore drags starting on a button or link (e.g., memo row taps).
-      const target = e.target as HTMLElement | null;
-      if (target && target.closest("button, a")) {
-        return;
-      }
       // A new touch immediately stops any momentum from the previous flick.
+      // Even if the user is just tapping a row, killing momentum mid-flight
+      // is the right call — they wanted to interrupt the motion.
       cancelMomentum();
       activePointerId = e.pointerId;
+      dragStarted = false;
+      startY = e.clientY;
       lastY = e.clientY;
       samples.length = 0;
       samples.push({ t: performance.now(), y: e.clientY });
-      el.setPointerCapture(e.pointerId);
+      // Note: we deliberately do NOT call setPointerCapture here. Capturing
+      // would steal the eventual `click` from any button under the pointer,
+      // breaking taps. We capture lazily once the move threshold is crossed.
     };
 
     const onPointerMove = (e: PointerEvent) => {
       if (e.pointerId !== activePointerId) {
         return;
       }
+
+      // Until we cross the drag threshold, leave taps alone.
+      if (!dragStarted) {
+        if (Math.abs(e.clientY - startY) < DRAG_THRESHOLD_PX) {
+          return;
+        }
+        // Cross the threshold: commit to drag mode.
+        dragStarted = true;
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch {
+          // setPointerCapture can throw if the pointer is no longer active.
+        }
+        // Reset lastY to the threshold-cross point so the first applied
+        // delta isn't a sudden jump.
+        lastY = e.clientY;
+      }
+
       const deltaY = e.clientY - lastY;
       lastY = e.clientY;
       // Drag up (deltaY < 0) -> advance forward, so subtract.
@@ -143,6 +167,26 @@ export function MainPage() {
         // releasePointerCapture can throw if the capture was already lost.
       }
 
+      if (!dragStarted) {
+        // Never crossed the threshold — let the natural click flow through
+        // so memo-row buttons still work.
+        samples.length = 0;
+        return;
+      }
+
+      // It was a real drag/flick. Suppress the upcoming click so a flick on
+      // top of a memo row doesn't accidentally navigate. Only the first
+      // click after this drag is suppressed (the listener removes itself).
+      const swallow = (clickEvent: Event) => {
+        clickEvent.stopPropagation();
+        clickEvent.preventDefault();
+        window.removeEventListener("click", swallow, true);
+      };
+      window.addEventListener("click", swallow, true);
+      // Belt-and-braces: if no click ever fires (e.g., release outside a
+      // button), remove the listener after a short window.
+      window.setTimeout(() => window.removeEventListener("click", swallow, true), 350);
+
       // Estimate end-of-drag velocity from the samples in the recent window.
       // Velocity (px/sec) -> divide by TOUCH_PIXELS_PER_NOTCH to get notches/sec.
       // Sign is flipped to match the "drag up advances" mapping above.
@@ -157,6 +201,7 @@ export function MainPage() {
         }
       }
       samples.length = 0;
+      dragStarted = false;
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
