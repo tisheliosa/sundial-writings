@@ -1,0 +1,36 @@
+.sundial {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  /* Establishes 3D perspective for the tilted dial layer. */
+  perspective: 1100px;
+}
+
+.sundial__dial-tilt,
+.sundial__sky {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Tilt the dial face away from the viewer to fake 3D. */
+.sundial__dial-tilt {
+  transform: rotateX(58deg);
+  transform-origin: center 60%;
+}
+
+.sundial__gnomon {
+  position: absolute;
+  /* Sit on the dial center, pointing up. */
+  width: 28px;
+  height: 56px;
+  /* Dial center after the perspective tilt sits a bit lower than geometric center. */
+  top: calc(50% - 18px);
+  left: calc(50% - 14px);
+  pointer-events: none;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.08));
+}

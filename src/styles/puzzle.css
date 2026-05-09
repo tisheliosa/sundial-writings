@@ -1,0 +1,51 @@
+.puzzle-gate {
+  position: fixed;
+  inset: 0;
+  background: #000000;
+  overflow: hidden;
+  /* Default cursor is the regular pointer arrow over a black void.
+     We swap to "grab" only when over the hidden piece. */
+  cursor: default;
+  user-select: none;
+}
+
+.puzzle-gate--hover-piece {
+  cursor: pointer;
+}
+
+.puzzle-cutout {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none; /* never blocks the cursor */
+}
+
+.puzzle-piece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* The piece itself is black on black — invisible. We do NOT add any
+     filter, shadow, or outline; the only way the user "feels" it is via
+     the cursor change wired up in PuzzleGate.tsx. */
+  will-change: transform;
+}
+
+/* When the user solves it, briefly fade the screen to white before route change. */
+.puzzle-flash {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  opacity: 0;
+  animation: flash-in 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes flash-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

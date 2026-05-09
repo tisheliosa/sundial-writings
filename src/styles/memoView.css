@@ -1,0 +1,52 @@
+.memo-view {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  color: #000000;
+  display: grid;
+  place-items: center;
+  padding: 48px;
+  text-align: center;
+}
+
+.memo-view__body {
+  max-width: 640px;
+}
+
+.memo-view__title {
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin: 0 0 18px 0;
+}
+
+.memo-view__text {
+  font-size: 18px;
+  line-height: 1.6;
+  margin: 0 0 28px 0;
+  color: #1a1a1a;
+}
+
+.memo-view__date {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #999999;
+}
+
+.memo-view__back {
+  position: fixed;
+  top: 22px;
+  left: 22px;
+  appearance: none;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #000000;
+  padding: 6px 10px;
+}
+
+.memo-view__back:hover {
+  opacity: 0.6;
+}
