@@ -6,7 +6,7 @@ import "../styles/main.css";
 
 const SCROLL_SENSITIVITY = 1 / 120;     // 1 wheel "click" (~120 deltaY) = 1 notch
 // Negative so the sun orbits the OPPOSITE direction as the user scrolls down.
-const SUN_RADIANS_PER_NOTCH = -Math.PI / 14;
+const SUN_RADIANS_PER_NOTCH = Math.PI / 14;
 
 /**
  * Main page.
@@ -45,7 +45,6 @@ export function MainPage() {
         <Sundial sunAngle={sunAngle} />
       </div>
       <div className="main-page__right">
-        <div className="main-page__hint">scroll</div>
         <MemoList memos={memos} position={scrollPosition} />
       </div>
     </div>

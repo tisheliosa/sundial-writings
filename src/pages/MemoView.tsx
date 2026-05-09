@@ -21,6 +21,16 @@ export function MemoView() {
     );
   }
 
+  // Split the body into paragraphs on any newline (including consecutive
+  // blank lines). Normalize CRLF -> LF first, trim leading/trailing
+  // whitespace, and drop any empty fragments.
+  const paragraphs = memo.body
+    .replace(/\r\n/g, "\n")
+    .trim()
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
   return (
     <div className="memo-view">
       <button className="memo-view__back" onClick={() => navigate("/whatisthetime")} aria-label="Back">
@@ -28,7 +38,11 @@ export function MemoView() {
       </button>
       <div className="memo-view__body">
         <h1 className="memo-view__title">{memo.title}</h1>
-        <p className="memo-view__text">{memo.body}</p>
+        {paragraphs.map((paragraph, index) => (
+          <p key={index} className="memo-view__text">
+            {paragraph}
+          </p>
+        ))}
         <time className="memo-view__date">{memo.createdAt}</time>
       </div>
     </div>

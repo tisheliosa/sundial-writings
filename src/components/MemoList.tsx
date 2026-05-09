@@ -9,8 +9,8 @@ interface MemoListProps {
   position: number;
 }
 
-const VISIBLE_COUNT = 8;
-const ROW_HEIGHT_PX = 64;
+const VISIBLE_COUNT = 6;
+const ROW_HEIGHT_PX = 50;
 
 /**
  * Combination-lock style infinite vertical list.

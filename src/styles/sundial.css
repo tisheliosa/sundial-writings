@@ -4,22 +4,17 @@
   height: 100%;
   display: grid;
   place-items: center;
-  /* Establishes 3D perspective for the tilted dial layer. */
-  perspective: 1100px;
 }
 
-.sundial__dial-tilt,
+/* Both layers fill the same square so their coordinate systems align.
+   The geometry itself encodes the foreshortening (an ellipse for the top
+   surface, etc.), so we don't tilt anything with CSS — keeps shapes crisp
+   and the look intentionally flat / illustrative. */
+.sundial > svg,
 .sundial__sky {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-}
-
-/* Tilt the dial face away from the viewer to fake 3D. The gnomon and
-   shadow live inside this same SVG so they share its coordinate system. */
-.sundial__dial-tilt {
-  transform: rotateX(58deg);
-  transform-origin: center 60%;
 }

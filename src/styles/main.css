@@ -29,13 +29,6 @@
   padding: 32px;
 }
 
-.main-page__hint {
-  font-size: 11px;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: #b7b7b7;
-}
-
 @media (max-width: 720px) {
   .main-page {
     grid-template-columns: 1fr;
