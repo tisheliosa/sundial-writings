@@ -17,20 +17,9 @@
   pointer-events: none;
 }
 
-/* Tilt the dial face away from the viewer to fake 3D. */
+/* Tilt the dial face away from the viewer to fake 3D. The gnomon and
+   shadow live inside this same SVG so they share its coordinate system. */
 .sundial__dial-tilt {
   transform: rotateX(58deg);
   transform-origin: center 60%;
-}
-
-.sundial__gnomon {
-  position: absolute;
-  /* Sit on the dial center, pointing up. */
-  width: 28px;
-  height: 56px;
-  /* Dial center after the perspective tilt sits a bit lower than geometric center. */
-  top: calc(50% - 18px);
-  left: calc(50% - 14px);
-  pointer-events: none;
-  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.08));
 }

@@ -5,7 +5,8 @@ import { useMemos } from "../hooks/useMemos";
 import "../styles/main.css";
 
 const SCROLL_SENSITIVITY = 1 / 120;     // 1 wheel "click" (~120 deltaY) = 1 notch
-const SUN_RADIANS_PER_NOTCH = Math.PI / 14; // each notch nudges the sun a bit
+// Negative so the sun orbits the OPPOSITE direction as the user scrolls down.
+const SUN_RADIANS_PER_NOTCH = -Math.PI / 14;
 
 /**
  * Main page.

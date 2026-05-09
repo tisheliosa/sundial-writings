@@ -13,19 +13,22 @@ const DIAL_R = 150;              // dial face radius
 const ORBIT_R = 175;             // sun orbit radius (sits just outside the dial)
 const SUN_R = 22;                // sun visual radius
 const GNOMON_HEIGHT = 70;        // logical height of the gnomon (used for shadow length)
+const GNOMON_HALF_W = 12;        // gnomon base half-width in viewBox units
 
 /**
  * Vector-styled sundial in faked 3D.
  *
- * The whole dial (face + hour ticks + gnomon shadow) lives in one SVG that is
- * tilted via CSS `transform: perspective(...) rotateX(...)` to give the
- * appearance of a top-down dial. The sun is rendered in a separate, untilted
- * SVG layered above so it reads as a circle "in the sky" orbiting the dial.
+ * The dial face, hour ticks, gnomon, and gnomon shadow all live in the SAME
+ * tilted SVG so they share a single coordinate system — the shadow's base
+ * therefore coincides exactly with the gnomon's base at (DIAL_CX, DIAL_CY).
  *
- * Shadow physics (simplified): the shadow points in the OPPOSITE direction
- * from the sun's azimuth, with length proportional to (1 / sin(altitude)).
- * Because we model the sun as orbiting in a vertical plane, altitude == the
- * sin of the angle above the horizon. We clamp so it never explodes.
+ * The sun lives in a separate, untilted SVG layered above so it stays a
+ * perfect circle "in the sky" as it orbits.
+ *
+ * Shadow physics (simplified, decorative):
+ *   - Shadow points opposite the sun's azimuth.
+ *   - Length scales as 1 / sin(altitude), clamped.
+ *   - We foreshorten the Y component to fake the dial-plane projection.
  */
 export function Sundial({ sunAngle }: SundialProps) {
   // Sun position in the screen plane (untilted layer).
@@ -36,29 +39,26 @@ export function Sundial({ sunAngle }: SundialProps) {
   const altitudeSin = Math.sin(sunAngle);
   const isDay = altitudeSin > 0.05;
 
-  // Shadow vector on the dial face. Points away from the sun horizontally
-  // (opposite azimuth) with length scaled by 1 / sin(altitude).
+  // Shadow polygon path. Base is centered exactly at (DIAL_CX, DIAL_CY)
+  // so it visually emerges from the gnomon's foot.
   const shadowPath = useMemo(() => {
     if (!isDay) {
       return null;
     }
-    // Azimuth on the dial == direction from gnomon base to sun's projection.
     const dirX = -Math.cos(sunAngle);
-    const dirY = Math.sin(sunAngle); // shadow goes "away" — but on screen y is inverted; this gives a pleasant arc
+    const dirY = Math.sin(sunAngle); // y inverted in screen space; combined with foreshorten gives the right look
     const length = Math.min(DIAL_R * 0.9, GNOMON_HEIGHT / Math.max(altitudeSin, 0.15));
     const tipX = DIAL_CX + dirX * length;
-    const tipY = DIAL_CY + dirY * length * 0.6; // 0.6 = vertical foreshortening from the tilt
-    // Shadow as a slim triangle from the gnomon base to the tip.
-    const baseHalfW = 6;
+    const tipY = DIAL_CY + dirY * length * 0.6; // 0.6 = vertical foreshortening for the tilt
     return [
-      `M ${DIAL_CX - baseHalfW} ${DIAL_CY}`,
-      `L ${DIAL_CX + baseHalfW} ${DIAL_CY}`,
+      `M ${DIAL_CX - GNOMON_HALF_W} ${DIAL_CY}`,
+      `L ${DIAL_CX + GNOMON_HALF_W} ${DIAL_CY}`,
       `L ${tipX} ${tipY}`,
       "Z",
     ].join(" ");
   }, [sunAngle, isDay, altitudeSin]);
 
-  // Hour tick marks (12 of them, like a clock).
+  // Hour tick marks (12 of them).
   const ticks = useMemo(() => {
     const out: { x1: number; y1: number; x2: number; y2: number; key: number }[] = [];
     for (let i = 0; i < 12; i++) {
@@ -72,9 +72,19 @@ export function Sundial({ sunAngle }: SundialProps) {
     return out;
   }, []);
 
+  // Gnomon as an in-SVG triangle anchored at (DIAL_CX, DIAL_CY).
+  // Apex sits GNOMON_HEIGHT units "up" the dial. Because this SVG is the one
+  // that gets the CSS rotateX tilt, the triangle visually leans back too —
+  // an acceptable cheat that still reads as a vertical fin in faked 3D.
+  const gnomonPoints = [
+    `${DIAL_CX},${DIAL_CY - GNOMON_HEIGHT}`,
+    `${DIAL_CX + GNOMON_HALF_W},${DIAL_CY}`,
+    `${DIAL_CX - GNOMON_HALF_W},${DIAL_CY}`,
+  ].join(" ");
+
   return (
     <div className="sundial">
-      {/* Tilted dial face layer. */}
+      {/* Tilted dial layer: dial face, ticks, shadow, gnomon, base dot. Order matters for z-stack. */}
       <div className="sundial__dial-tilt">
         <svg viewBox={`0 0 ${DIAL_VIEW} ${DIAL_VIEW}`} width="100%" height="100%">
           {/* Outer ring */}
@@ -94,17 +104,12 @@ export function Sundial({ sunAngle }: SundialProps) {
               strokeLinecap="round"
             />
           ))}
-          {/* Shadow */}
+          {/* Shadow first, so the gnomon paints on top of it. */}
           {shadowPath && <path d={shadowPath} fill="rgba(40, 28, 6, 0.55)" />}
-          {/* Gnomon base */}
-          <circle cx={DIAL_CX} cy={DIAL_CY} r={6} fill="#7a5a14" />
-        </svg>
-      </div>
-
-      {/* Untilted gnomon: a vertical triangle sticking up out of the dial center. */}
-      <div className="sundial__gnomon">
-        <svg viewBox="0 0 40 80" width="100%" height="100%">
-          <polygon points="20,0 32,72 8,72" fill="#b8881f" stroke="#7a5a14" strokeWidth={1.5} />
+          {/* Gnomon */}
+          <polygon points={gnomonPoints} fill="#b8881f" stroke="#7a5a14" strokeWidth={1.5} />
+          {/* Base dot */}
+          <circle cx={DIAL_CX} cy={DIAL_CY} r={4} fill="#7a5a14" />
         </svg>
       </div>
 
