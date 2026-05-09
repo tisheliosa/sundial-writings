@@ -23,6 +23,11 @@ const SUN_RADIANS_PER_NOTCH = Math.PI / 14;
 export function MainPage() {
   const memos = useMemos();
   const [scrollPosition, setScrollPosition] = useState(0);
+  // True while the user is actively dragging or while momentum is running.
+  // We pass it down so MemoList can disable its CSS transition during these
+  // continuous interactions — otherwise the 220ms transition restarts every
+  // frame and the text looks shimmery / blurred.
+  const [isAnimating, setIsAnimating] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   // Wheel handler (desktop) attached at the page level so scrolling anywhere
@@ -85,6 +90,8 @@ export function MainPage() {
       if (Math.abs(momentumVelocity) < MOMENTUM_MIN_VELOCITY) {
         momentumRafId = null;
         momentumVelocity = 0;
+        // Momentum just stopped; re-enable the smoothing transition.
+        setIsAnimating(false);
         return;
       }
       momentumRafId = requestAnimationFrame(tickMomentum);
@@ -98,8 +105,13 @@ export function MainPage() {
       );
       if (Math.abs(momentumVelocity) < MOMENTUM_MIN_VELOCITY) {
         momentumVelocity = 0;
+        // No real flick velocity: drag ended with no momentum, re-enable the
+        // CSS transition so any subsequent wheel ticks animate smoothly.
+        setIsAnimating(false);
         return;
       }
+      // Keep CSS transitions off while momentum applies per-frame updates.
+      setIsAnimating(true);
       momentumLastTime = performance.now();
       momentumRafId = requestAnimationFrame(tickMomentum);
     };
@@ -132,6 +144,10 @@ export function MainPage() {
         }
         // Cross the threshold: commit to drag mode.
         dragStarted = true;
+        // Disable CSS transitions on the strip so per-frame transform
+        // updates apply directly during the drag. Re-enabled when drag
+        // ends and any momentum settles.
+        setIsAnimating(true);
         try {
           el.setPointerCapture(e.pointerId);
         } catch {
@@ -228,7 +244,7 @@ export function MainPage() {
         <Sundial sunAngle={sunAngle} />
       </div>
       <div className="main-page__right">
-        <MemoList memos={memos} position={scrollPosition} />
+        <MemoList memos={memos} position={scrollPosition} isAnimating={isAnimating} />
       </div>
     </div>
   );

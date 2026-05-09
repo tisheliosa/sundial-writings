@@ -16,8 +16,17 @@
   right: 0;
   display: flex;
   flex-direction: column;
-  /* Smooth interpolation between scroll ticks. */
+  /* Smooth interpolation between discrete scroll ticks (wheel events).
+     Disabled during continuous drag/momentum via the modifier class below
+     so per-frame transform updates apply directly without restarting the
+     transition each frame (which produced a shimmery / blurred look). */
   transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Promote to its own compositing layer to keep text crisp during animation. */
+  will-change: transform;
+}
+
+.memo-list__strip--no-transition {
+  transition: none;
 }
 
 .memo-row {

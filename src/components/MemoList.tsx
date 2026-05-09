@@ -7,6 +7,12 @@ interface MemoListProps {
   memos: Memo[];
   /** Floating-point scroll position in "notches". 1.0 == one full notch advanced. */
   position: number;
+  /** When true, the strip applies `position` directly with no CSS transition.
+   *  Used during continuous interaction (touch drag, momentum) so updates
+   *  don't fight a 220ms transition restarted on every frame, which causes a
+   *  shimmery / blurred look. Discrete wheel events leave it false so the
+   *  transition smooths the jump between notches. */
+  isAnimating?: boolean;
 }
 
 const VISIBLE_COUNT = 6;
@@ -19,7 +25,7 @@ const ROW_HEIGHT_PX = 50;
  * to cover the in/out animation). Each row's content is computed from a
  * modular index based on `position`, so the list wraps around forever.
  */
-export function MemoList({ memos, position }: MemoListProps) {
+export function MemoList({ memos, position, isAnimating = false }: MemoListProps) {
   const navigate = useNavigate();
   const n = memos.length;
 
@@ -38,7 +44,7 @@ export function MemoList({ memos, position }: MemoListProps) {
   return (
     <div className="memo-list" style={{ height: VISIBLE_COUNT * ROW_HEIGHT_PX }}>
       <div
-        className="memo-list__strip"
+        className={`memo-list__strip ${isAnimating ? "memo-list__strip--no-transition" : ""}`}
         style={{ transform: `translateY(${-fractional * ROW_HEIGHT_PX}px)` }}
       >
         {slots.map((slot) => {
