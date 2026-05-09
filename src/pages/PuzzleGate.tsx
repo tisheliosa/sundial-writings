@@ -61,28 +61,33 @@ export function PuzzleGate() {
     [piecePos.x, piecePos.y]
   );
 
-  // Track cursor over the piece for the cursor-change affordance.
+  // Track pointer over the piece for the cursor-change affordance. Only
+  // applies to mouse pointers — touch has no hover state, and we don't want
+  // tap-to-grab to be revealed by a stray hover indicator.
   useEffect(() => {
     if (solved) {
       return;
     }
-    const onMove = (e: MouseEvent) => {
-      if (isDragging) {
+    const onMove = (e: PointerEvent) => {
+      if (isDragging || e.pointerType !== "mouse") {
         return;
       }
       setHoveringPiece(pointHitsPiece(e.clientX, e.clientY));
     };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
   }, [isDragging, pointHitsPiece, solved]);
 
-  // Drag handlers.
+  // Drag handlers. Pointer events unify mouse + touch + pen, so the same
+  // logic works on both desktop and mobile. On touch the user "discovers"
+  // the piece by tapping around — if a tap lands inside the piece's hit
+  // region, the drag starts immediately and follows the finger.
   useEffect(() => {
     if (!isDragging) {
       return;
     }
 
-    const onMove = (e: MouseEvent) => {
+    const onMove = (e: PointerEvent) => {
       setPiecePos({
         x: e.clientX - dragOffsetRef.current.dx,
         y: e.clientY - dragOffsetRef.current.dy,
@@ -120,15 +125,19 @@ export function PuzzleGate() {
       });
     };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   }, [isDragging, navigate]);
 
-  const onPieceMouseDown = (e: React.MouseEvent) => {
+  // Tap/click anywhere on the page: if it's inside the piece's hit region,
+  // begin a drag. This is what enables the touch "tap-around to find" UX.
+  const onWrapperPointerDown = (e: React.PointerEvent) => {
     if (solved) {
       return;
     }
@@ -147,6 +156,7 @@ export function PuzzleGate() {
     <div
       ref={wrapperRef}
       className={`puzzle-gate ${hoveringPiece || isDragging ? "puzzle-gate--hover-piece" : ""}`}
+      onPointerDown={onWrapperPointerDown}
     >
       {/* The WHITE cutout in the middle — visually a white puzzle silhouette on black. */}
       <div ref={cutoutRef} className="puzzle-cutout" style={{ width: CUTOUT_SIZE_PX, height: CUTOUT_SIZE_PX }}>
@@ -155,7 +165,9 @@ export function PuzzleGate() {
         </svg>
       </div>
 
-      {/* The BLACK draggable piece. Invisible against black; visible over white. */}
+      {/* The BLACK draggable piece. Invisible against black; visible over white.
+          Pointer events on the wrapper handle hit-testing and drag start so
+          the same logic works for both mouse clicks and touch taps. */}
       <div
         ref={pieceRef}
         className="puzzle-piece"
@@ -164,7 +176,6 @@ export function PuzzleGate() {
           height: PIECE_SIZE_PX,
           transform: `translate(${piecePos.x}px, ${piecePos.y}px)`,
         }}
-        onMouseDown={onPieceMouseDown}
         aria-hidden="true"
       >
         <svg viewBox={`0 0 ${PUZZLE_VIEWBOX} ${PUZZLE_VIEWBOX}`} width="100%" height="100%">
